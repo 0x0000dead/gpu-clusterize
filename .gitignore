@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+.idea
+/data
+/faiss/data
+/faiss/catboost_info
+/faiss/*.csv
