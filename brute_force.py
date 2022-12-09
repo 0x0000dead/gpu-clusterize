@@ -23,7 +23,7 @@ def brute_force_k_medoids(data, k):
 
 def main():
     data = [(3, 5), (0, 1), (1, 8), (5, 6), (2, 4)]
-    k = 2
+    k = 3
 
     medoids, dist = brute_force_k_medoids(data, k)
 

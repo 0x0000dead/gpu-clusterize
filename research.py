@@ -12,6 +12,8 @@
 # pam = kmedoids.pam(diss, 100)
 # print("PAM took: %.2f ms" % ((time.time() - start)*1000))
 # print("Loss with PAM:", pam.loss)
+from sklearn.metrics.pairwise import pairwise_distances
+import numpy as np
 
 
 
@@ -69,8 +71,8 @@ def kMedoids(D, k, tmax=10000):
             Mnew[kappa] = C[kappa][j]
         np.sort(Mnew)
         # check for convergence
-        #if np.array_equal(M, Mnew):
-        #    break
+        if np.array_equal(M, Mnew):
+           break
         M = np.copy(Mnew)
     else:
         # final update of cluster memberships
@@ -81,8 +83,6 @@ def kMedoids(D, k, tmax=10000):
     # return results
     return M, C
 
-from sklearn.metrics.pairwise import pairwise_distances
-import numpy as np
 
 
 # 3 points in dataset
