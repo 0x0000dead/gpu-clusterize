@@ -36,3 +36,18 @@
 /faiss/data
 /faiss/catboost_info
 /faiss/*.csv
+
+# CMake
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
+Makefile
+CTestTestfile.cmake
+*.cmake
+*.cmake.in
+*.cmake.in~
+*.cmake~
+
+# idea files
+/cpp/.idea
+/cpp/cmake-build-debug

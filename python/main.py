@@ -1,3 +1,5 @@
+import glob
+
 import numpy as np
 from sklearn.metrics.pairwise import pairwise_distances
 import numba
@@ -15,7 +17,7 @@ class KMedoids:
         self.ro_sorted = None
         self.indexes_map = None
 
-        self.lambda_v = 10 * np.ones(m)
+        self.lambda_v = 5 * np.ones(m)
 
         self.LB = -np.inf
         self.gamma_0, self.b_max, self.s, self.beta = 0, 5, 0, 0
@@ -86,8 +88,8 @@ class KMedoids:
                 continue
             elif is_break:
                 break
-        print(self.j_glob)
-        print(h)
+        # print(self.j_glob)
+        # print(h)
         # 7 step
         self.ro_sorted = np.sort(self.ro)
         self.indexes_map = np.argsort(self.ro)
@@ -118,10 +120,13 @@ class KMedoids:
         a = 0
         while True:
             #print("Lambda: ", self.lambda_v)
+            start = time.time()
             if is_classic:
                 self.compute_cost_dual_classic()
             else:
                 self.compute_cost_dual_subcolumn()
+            end = time.time()
+            # print("Time cost: ", end - start)
             # print(self.lagrangian, self.ro)
             # a += 1
             # if a == 2: break
@@ -130,8 +135,10 @@ class KMedoids:
                 self.beta = 0
             if self.LB / self.UB >= 1 - 10 ** (-5):
                 break
-
+            start = time.time()
             self.compute_y_and_g()
+            end = time.time()
+            # print("Time compute y and g: ", end - start)
             lin_norm = np.linalg.norm(self.g) ** 2
             if lin_norm <= 10 ** (-5):
                 break
@@ -152,12 +159,12 @@ class KMedoids:
             self.lambda_v = self.lambda_v + alpha * self.g
             self.s = self.s + 1
 
-            print("LB: ", self.LB)
-            print(self.lambda_v)
-            print("Lagr: ",self.lagrangian)
-            print("ro: ",self.ro)
-            print("lin_norm: ", lin_norm)
-            print("gamma: ",self.gamma)
+            # print("LB: ", self.LB)
+            #print(self.lambda_v)
+            # print("Lagr: ",self.lagrangian)
+            #print("ro: ",self.ro)
+            # print("lin_norm: ", lin_norm)
+            # print("gamma: ",self.gamma)
         return self.lambda_v, self.LB, self.UB
 
 
@@ -178,7 +185,7 @@ def read_data(path):
     with open(path, 'r') as f:
         numbers = f.readline().split()
         numbers = [int(x) for x in numbers]
-        print(numbers)
+        # print(numbers)
         for line in f:
             all_points.append([float(x) for x in line.split()])
 
@@ -201,18 +208,28 @@ if __name__ == '__main__':
 
     # sort ro
     # map indexes before sorting to indexes after sorting
-    # d_ij, m = read_data("./data/ds1x4.txt")
-    d_ij, m = read_data("./data/my_example.txt")
+    # d_ij, m = read_data("../data/ds1x4.txt")
+    # print(glob.glob("./data/*"))
+    d_ij, m = read_data("./data/my_data_10.txt")
+    for i in range(10):
+        for j in range(10):
+            # format
+            print("{:.2f}".format(d_ij[i][j]), end=" ")
+        print("")
     # k = 64
     k = 2
-    UB = 20
-    # UB = 11934.8
+    UB = 30
+    # UB = 100934.8
     #print(d_ij)
     kmed = KMedoids(k, m, d_ij, UB)
     # kmed1 = KMedoids(k, m, d_ij, UB)
 
     print("Is_classic")
+    # measure time
+    start = time.time()
     lambda_s, LB, UB = kmed.solve(is_classic=False)
+    end = time.time()
+    print("Time: ", end - start)
     # print("is sub column")
     # lambda_s, LB, UB = kmed1.solve(is_classic=False)
-    print(lambda_s, LB, UB)
+    print(LB, UB)
