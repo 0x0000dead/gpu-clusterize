@@ -196,7 +196,7 @@ def read_data(path):
         # print(distance_matrix)
 
         # save distance matrix to file
-        # np.savetxt('distance_matrix.txt', distance_matrix, fmt='%f')
+        np.savetxt('distance_matrix.txt', distance_matrix, fmt='%f')
     return distance_matrix, numbers[0]
 
 
@@ -212,15 +212,15 @@ if __name__ == '__main__':
     # print(glob.glob("./data/*"))
     d_ij, m = read_data("./data/my_data_10.txt")
     for i in range(10):
-        for j in range(10):
-            # format
-            print("{:.2f}".format(d_ij[i][j]), end=" ")
-        print("")
+       for j in range(10):
+           print("{:.5f}".format(d_ij[i][j]), end=" ")
+       print("")
     # k = 64
     k = 2
     UB = 30
     # UB = 100934.8
     #print(d_ij)
+    exit(0)
     kmed = KMedoids(k, m, d_ij, UB)
     # kmed1 = KMedoids(k, m, d_ij, UB)
 

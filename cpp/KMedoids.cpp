@@ -195,10 +195,10 @@ std::vector<double> KMedoids::solve(bool is_classic=true) {
             lambda_v[j] += alpha * g[j];
         }
         s += 1;
-//        std::cout << "LB: " << LB << std::endl;
-//        std::cout << "Lagr: " << lagrangian << std::endl;
+        std::cout << "LB: " << LB << std::endl;
+        std::cout << "Lagr: " << lagrangian << std::endl;
 //        std::cout << "lin_norm: " << lin_norm << std::endl;
-//        std::cout << "gamma: " << gamma << std::endl;
+        std::cout << "gamma: " << gamma << std::endl;
     }
     return {LB, UB};
 }

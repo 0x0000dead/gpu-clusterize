@@ -6,6 +6,7 @@
 #define CPP_KMEDOIDS_H
 #include <vector>
 
+
 class KMedoids {
 public:
     // define the constructor with an initializer list
