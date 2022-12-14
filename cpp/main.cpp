@@ -1,8 +1,7 @@
-#define PRINT_DEBUG 1
+#define PRINT_DEBUG 0
 
 #include <iostream>
 #include <vector>
-#include <tuple>
 #include <algorithm>
 #include <unordered_map>
 #include <fstream>
@@ -70,8 +69,8 @@ namespace MATRIX {
 }
 
 int main() {
-    std::ifstream file("../../data/my_data_10.txt");
-//    std::ifstream file("../../data/ds1x4.txt");
+//    std::ifstream file("../../data/my_data_10.txt");
+    std::ifstream file("../../data/ds1x4.txt");
 //    std::ifstream file_distance("../../distance_matrix.txt");
 
     if (file.is_open()) {
@@ -79,7 +78,7 @@ int main() {
 //        double UB = 30;
         double UB = 11934.8;
 //        double UB = 100000;
-        int k = 2;
+        int k = 64;
 //        int k = 5;
 
         file >> m >> dim;
@@ -120,7 +119,7 @@ int main() {
 
         KMedoids kmed(k, m, d_ij, UB);
         start = std::chrono::high_resolution_clock::now();
-        std::vector<double> res = kmed.solve(true);
+        std::vector<double> res = kmed.solve(false);
         finish = std::chrono::high_resolution_clock::now();
 
         elapsed = finish - start;

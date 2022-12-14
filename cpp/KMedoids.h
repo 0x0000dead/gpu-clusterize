@@ -17,7 +17,7 @@ public:
 private:
     void compute_cost_dual_classic();
 
-    void compute_y_and_g();
+    void compute_y_and_g(const bool is_classic);
 
     void compute_cost_dual_subcolumn();
 

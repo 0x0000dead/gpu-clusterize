@@ -60,21 +60,65 @@ void KMedoids::compute_cost_dual_classic() {
 }
 
 
-void KMedoids::compute_y_and_g() {
+void KMedoids::compute_y_and_g(const bool is_classic) {
     y_i = std::vector<int>(m, 0);
     for (int i = 0; i < k; i++) {
         y_i[indexes_map[i]] = 1;
     }
-    for (int i = 0; i < m; i++) {
-        for (int j = 0; j < m; j++) {
-            nu_ij[i][j] = d_ij[i][j] - lambda_v[j];
-            if (i != j) {
-                if (y_i[i] == 1 && (d_ij[i][j] - lambda_v[j]) < 0) {
-                    x_ij[i][j] = 1;
+    if (is_classic) {
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < m; j++) {
+                nu_ij[i][j] = d_ij[i][j] - lambda_v[j];
+                if (i != j) {
+                    if (y_i[i] == 1 && (d_ij[i][j] - lambda_v[j]) < 0) {
+                        x_ij[i][j] = 1;
+                    }
+                    else {
+                        x_ij[i][j] = 0;
+                    }
                 }
-                else {
-                    x_ij[i][j] = 0;
+            }
+        }
+    }
+    else {
+        int j_local = 0;
+        int h_local = 0;
+        bool is_two;
+        bool is_break = false;
+        x_ij = std::vector<std::vector<int>>(m, std::vector<int>(m, 0));
+        while (true) {
+            is_two = false;
+            h_local = 0;
+            while (true) {
+                if (d_ij[l_h[h_local][j_local]][j_local] - lambda_v[j_local] >= 1e-16) {
+                    if (j_local < m - 1) {
+                        is_two = true;
+                        j_local += 1;
+                        break;
+                    } else {
+                        is_break = true;
+                        break;
+                    }
+                } else {
+                    if (y_i[l_h[h_local][j_local]] == 1 && l_h[h_local][j_local] != j_local) {
+                        x_ij[l_h[h_local][j_local]][j_local] = 1;
+                    }
+                    if (h_local < m - 1) {
+                        h_local += 1;
+                    } else if (j_local < m - 1) {
+                        is_two = true;
+                        j_local += 1;
+                        break;
+                    } else {
+                        is_break = true;
+                        break;
+                    }
                 }
+            }
+            if (is_two) {
+                continue;
+            } else if (is_break) {
+                break;
             }
         }
     }
@@ -93,7 +137,7 @@ void KMedoids::compute_cost_dual_subcolumn() {
     lagrangian = 0;
     ro = std::vector<double>(m, -lambda_val);
     j_glob = 0;
-    bool is_two;;
+    bool is_two;
     int h = 0;
     while (true) {
         lagrangian = lagrangian + lambda_v[j_glob];
@@ -166,7 +210,7 @@ std::vector<double> KMedoids::solve(bool is_classic=true) {
             break;
         }
         start = std::chrono::high_resolution_clock::now();
-        compute_y_and_g();
+        compute_y_and_g(false); // is classic
         finish = std::chrono::high_resolution_clock::now();
         elapsed = finish - start;
         std::cout << "compute y and g: " << elapsed.count() << std::endl;
