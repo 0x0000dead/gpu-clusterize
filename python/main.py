@@ -17,7 +17,6 @@ class KMedoids:
         self.ro_sorted = None
         self.indexes_map = None
 
-        self.lambda_v = 5 * np.ones(m)
 
         self.LB = -np.inf
         self.gamma_0, self.b_max, self.s, self.beta = 0, 5, 0, 0
@@ -26,7 +25,6 @@ class KMedoids:
         self.nu_ij = np.zeros((m, m))
         self.gamma = 1.05
         self.g = np.zeros(m)
-        self.ro = -self.lambda_v
         self.lagrangian = 0
         self.j_glob = 0
         self.d_ij1 = self.d_ij.copy()
@@ -36,6 +34,10 @@ class KMedoids:
         # replace 0 with -inf
         self.d_ij_sorted = np.sort(self.d_ij1, axis=0)
         self.d_ij_sorted1 = np.sort(self.d_ij, axis=0)
+
+        self.lambda_v = self.d_ij_sorted[0][:]
+        # self.lambda_v = np.zeros(m)
+        self.ro = -self.lambda_v
 
         self.y_i = np.zeros(m)
 
@@ -196,7 +198,7 @@ def read_data(path):
         # print(distance_matrix)
 
         # save distance matrix to file
-        np.savetxt('distance_matrix.txt', distance_matrix, fmt='%f')
+        #np.savetxt('distance_matrix.txt', distance_matrix, fmt='%f')
     return distance_matrix, numbers[0]
 
 
@@ -220,7 +222,6 @@ if __name__ == '__main__':
     UB = 30
     # UB = 100934.8
     #print(d_ij)
-    exit(0)
     kmed = KMedoids(k, m, d_ij, UB)
     # kmed1 = KMedoids(k, m, d_ij, UB)
 
