@@ -77,9 +77,12 @@ int main() {
         int dim, m;
 //        double UB = 30;
         double UB = 11934.8;
+//        double UB = 24840.3;
+//        double UB = 15863.8;
 //        double UB = 100000;
+//        int k = 100;
         int k = 64;
-//        int k = 5;
+//        int k = 2;
 
         file >> m >> dim;
         std::vector<std::vector<double>> input_ij(m, std::vector<double>(m, 0));
@@ -100,10 +103,13 @@ int main() {
         std::vector<std::vector<double>> d_ij(m, std::vector<double>(m, 0));
 
         for (int i = 0; i < m; i++) {
-            vector<double> row;
             for (int j = 0; j < m; j++) {
-                row.push_back(distance_matrix_1d[i*m + j]);
-                d_ij[i][j] = distance_matrix_1d[i*m + j];
+                if(i==j) {
+                    d_ij[i][j] = INT_MAX;
+                }
+                else {
+                    d_ij[i][j] = distance_matrix_1d[i * m + j];
+                }
 #if PRINT_DEBUG
                 std::cout << distance_matrix_1d[i*m + j] << " ";
 #endif
@@ -116,7 +122,7 @@ int main() {
         auto finish = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = finish - start;
         std::cout << "Time matrix calculation: " << elapsed.count() << " s\n";
-
+    
         KMedoids kmed(k, m, d_ij, UB);
         start = std::chrono::high_resolution_clock::now();
         std::vector<double> res = kmed.solve(false);
