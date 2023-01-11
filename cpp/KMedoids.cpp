@@ -19,10 +19,11 @@ KMedoids::KMedoids(int k, int m, std::vector<std::vector<double>>& d_ij, double 
     data->y_i.reserve(m);
     data->indexes_map.reserve(m);
     data->lambda_v.reserve(m);
-//    data.prev_g = std::vector<double>(m, 0);
-//    data.y_i = std::vector<int>(m, 0);
-//    data.indexes_map = std::vector<int>(m, 0);
-//    data.lambda_v = std::vector<double>(m, 0);
+
+    data->prev_g.resize(m);
+    data->y_i.resize(m);
+    data->indexes_map.resize(m);
+    data->lambda_v.resize(m);
 
     data->l_h = std::vector<std::vector<int>>(m, std::vector<int>(m, 0));
     data->d_ij = std::vector<std::vector<double>>(m, std::vector<double>(m, 0));
@@ -85,7 +86,8 @@ std::vector<double> KMedoids::solve(bool is_classic=true) {
         auto start = std::chrono::high_resolution_clock::now();
 
         // [2]
-        cost_calculator->compute_with_classic(*data);
+//        cost_calculator->compute_with_classic(*data);
+        cost_calculator->compute_with_column_generation(*data);
         // [3]
         if (cost_calculator->lagrangian > LB) {
             LB = cost_calculator->lagrangian;
@@ -113,6 +115,7 @@ std::vector<double> KMedoids::solve(bool is_classic=true) {
         }
         // [5]
         subgradient_calculator->compute_with_classic(*data);
+//        subgradient_calculator->compute_with_column_generation(*data);
 
 //        finish = std::chrono::high_resolution_clock::now();
 //         elapsed = finish - start;
@@ -153,13 +156,13 @@ std::vector<double> KMedoids::solve(bool is_classic=true) {
             break;
         }
 
-        double alpha1 = gamma * (1.05 * UB - cost_calculator->lagrangian) / linear_norm;
+        alpha = gamma * (1.05 * UB - cost_calculator->lagrangian) / linear_norm;
 
-        lambda_calculator->compute_with_classic(*data, alpha1, s);
+        lambda_calculator->compute_with_classic(*data, alpha, s);
 
 
 
-        std::cout << s << "  " << LB << " " << alpha1 << " " << linear_norm << std::endl;
+        std::cout << s << "  " << LB << " " << alpha << " " << linear_norm << std::endl;
         
         s += 1;
         auto finish = std::chrono::high_resolution_clock::now();

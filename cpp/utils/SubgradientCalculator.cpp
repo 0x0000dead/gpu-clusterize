@@ -1,7 +1,7 @@
 #include "SubgradientCalculator.h"
-
+#include <iostream>
 SubgradientCalculator::SubgradientCalculator(int m) {
-    nu_ij = std::vector<std::vector<double>>(m, std::vector<double>(m, 0));;
+    nu_ij = std::vector<std::vector<double>>(m, std::vector<double>(m, 0));
 }
 
 void SubgradientCalculator::compute_with_classic(VectorData & data) {
@@ -10,6 +10,9 @@ void SubgradientCalculator::compute_with_classic(VectorData & data) {
     for (int i = 0; i < data.k; ++i) {
         data.y_i[data.indexes_map[i]] = 1;
     }
+    std::cout << "HER" << " " << data.indexes_map[0]<<" " << data.indexes_map[1] << " " << data.indexes_map[2]<< " "<<data.k<<" "<<data.m<<" "
+    <<data.y_i[data.indexes_map[0]];
+
     for (int i = 0; i < data.m; ++i) {
         for (int j = 0; j < data.m; ++j) {
             nu_ij[i][j] = data.d_ij[i][j] - data.lambda_v[j];

@@ -1,5 +1,6 @@
 #include "CostCalculator.h"
 
+#include <iostream>
 CostCalculator::CostCalculator(int m, const std::vector<double>& lambda_v) : m(m) {
     ro_sorted = std::vector<double>(m, 0);
     ro = std::vector<double>(m, 0);
@@ -21,12 +22,16 @@ void CostCalculator::compute_with_classic(VectorData & data) {
         }
         ro[i] = total_sum - data.lambda_v[i];
     }
+    std::cout << "HERE" << " " << ro[0]<< " " << ro[1]<< " " << ro[2]<< " " << ro[3]<< " " << ro[4] << std::endl;
 
     std::iota(data.indexes_map.begin(), data.indexes_map.end(), 0);
+    std::cout << "HER" << " " << data.indexes_map[0]<<" " << data.indexes_map[1] << " " << data.indexes_map[2]<< std::endl;
     std::sort(data.indexes_map.begin(), data.indexes_map.end(), [this](int i1, int i2) {return ro[i1] < ro[i2]; });
     for (int i = 0; i < m; ++i) {
         ro_sorted[i] = ro[data.indexes_map[i]];
     }
+    std::cout << "HERE" << " " << ro_sorted[0]<< " " << ro_sorted[1]<< " " << ro_sorted[2]<< " " << ro_sorted[3]<< " " << ro_sorted[100] << std::endl;
+
     lagrangian = std::accumulate(ro_sorted.begin(), ro_sorted.begin() + data.k, 0.0) +
                  std::accumulate(data.lambda_v.begin(), data.lambda_v.end(), 0.0);
 }
