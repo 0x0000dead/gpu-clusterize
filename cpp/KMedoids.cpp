@@ -1,252 +1,134 @@
-//
-// Created by Sergey on 12/11/2022.
-//
-
 #include "KMedoids.h"
-#include <iostream>
+#include "utils/constants.h"
 #include <algorithm>
 #include <cmath>
 # include <vector>
 #include <numeric>
 #include <chrono>
-
-KMedoids::KMedoids(int k, int m, std::vector<std::vector<double>>& d_ij, double UB) :  k(k), m(m), d_ij(d_ij), UB(UB) {
-    // initialize the variables
-    x_ij = std::vector<std::vector<int>>(m, std::vector<int>(m, 0));
-    nu_ij = std::vector<std::vector<double>>(m, std::vector<double>(m, 0));
-    g = std::vector<double>(m, 0);
-    y_i = std::vector<int>(m, 0);
-    indexes_map = std::vector<int>(m, 0);
-
-    ro_sorted = std::vector<double>(m, 0);
-
-    l_h = std::vector<std::vector<int>>(m, std::vector<int>(m, 0));
-
-    for (int i = 0; i < m; i++) {
-        std::vector<int> indexes(m);
-        std::iota(indexes.begin(), indexes.end(), 0);
-        std::sort(indexes.begin(), indexes.end(), [i, &d_ij](int a, int b) { return d_ij[a][i] < d_ij[b][i]; });
-        for (int j = 0; j < m; j++) {
-            l_h[j][i] = indexes[j];
-        }
-    }
-//     std::cout << "l_h" << std::endl;
-//     for (int i = 0; i < m; i++) {
-//             std::cout << d_ij[i][l_h[0][i]] << " ";
-//     }
-
-    lambda_v = std::vector<double>(m, lambda_val);
-    ro = std::vector<double>(m, -lambda_val);
-    for (int i = 0; i < m; i++) {
-        lambda_v[i] = d_ij[i][l_h[0][i]];
-        ro[i] = -lambda_v[i];
-    }
-
-    LB = INT_MIN;
-    s = 0;
-    gamma = 1.55;
-    beta = 0;
-    b_max = 3;
-    lagrangian = 0;
-}
-
-void KMedoids::compute_cost_dual_classic() {
-    ro = std::vector<double>(m, 0);
-    for (int i = 0; i < m; i++) {
-        double total_sum = 0;
-        for (int j = 0; j < m; j++) {
-            if (i != j) {
-                total_sum += std::min(0.0, d_ij[i][j] - lambda_v[j]);
-            }
-        }
-        ro[i] = total_sum - lambda_v[i];
-    }
-    std::iota(indexes_map.begin(), indexes_map.end(), 0);
-    std::sort(indexes_map.begin(), indexes_map.end(), [this](int i1, int i2) {return ro[i1] < ro[i2]; });
-    for (int i = 0; i < m; i++) {
-        ro_sorted[i] = ro[indexes_map[i]];
-    }
-    lagrangian = std::accumulate(ro_sorted.begin(), ro_sorted.begin() + k, 0.0) + std::accumulate(lambda_v.begin(), lambda_v.end(), 0.0);
-}
-
-
-void KMedoids::compute_y_and_g(const bool is_classic) {
-    y_i = std::vector<int>(m, 0);
-    for (int i = 0; i < k; i++) {
-        y_i[indexes_map[i]] = 1;
-    }
-    if (is_classic) {
-        for (int i = 0; i < m; i++) {
-            for (int j = 0; j < m; j++) {
-                nu_ij[i][j] = d_ij[i][j] - lambda_v[j];
-                if (i != j) {
-                    if (y_i[i] == 1 && (d_ij[i][j] - lambda_v[j]) < 0) {
-                        x_ij[i][j] = 1;
-                    }
-                    else {
-                        x_ij[i][j] = 0;
-                    }
-                }
-            }
-        }
-    }
-    else {
-        int j_local = 0;
-        int h_local = 0;
-        bool is_two;
-        bool is_break = false;
-        x_ij = std::vector<std::vector<int>>(m, std::vector<int>(m, 0));
-        while (true) {
-            is_two = false;
-            h_local = 0;
-            while (true) {
-                if (d_ij[l_h[h_local][j_local]][j_local] - lambda_v[j_local] >= 1e-8) {
-                    if (j_local < m - 1) {
-                        is_two = true;
-                        j_local += 1;
-                        break;
-                    } else {
-                        is_break = true;
-                        break;
-                    }
-                } else {
-                    if (y_i[l_h[h_local][j_local]] == 1 && l_h[h_local][j_local] != j_local) {
-                        x_ij[l_h[h_local][j_local]][j_local] = 1;
-                    }
-                    if (h_local < m - 1) {
-                        h_local += 1;
-                    } else if (j_local < m - 1) {
-                        is_two = true;
-                        j_local += 1;
-                        break;
-                    } else {
-                        is_break = true;
-                        break;
-                    }
-                }
-            }
-            if (is_two) {
-                continue;
-            } else if (is_break) {
-                break;
-            }
-        }
-    }
-
-    for (int j = 0; j < m; j++) {
-        double total_sum = 0;
-        for (int i = 0; i < m; i++) {
-            total_sum += x_ij[i][j];
-        }
-        g[j] = 1 - total_sum - y_i[j];
-    }
-}
-
-void KMedoids::compute_cost_dual_subcolumn() {
-    bool is_break = false;
-    lagrangian = 0;
-    for (int i = 0; i < m; i++) {
-        ro[i] = -lambda_v[i];
-    }
-    j_glob = 0;
-    bool is_two;
-    int h = 0;
-    while (true) {
-        lagrangian = lagrangian + lambda_v[j_glob];
-        is_two = false;
-        h = 0;
-
-        while (true) {
-            if (d_ij[l_h[h][j_glob]][j_glob] - lambda_v[j_glob] >= 1e-8) {
-                if (j_glob < m - 1) {
-                    is_two = true;
-                    j_glob += 1;
-                    break;
-                }
-                else {
-                    is_break = true;
-                    break;
-                }
-            }
-            else {
-                ro[l_h[h][j_glob]] = ro[l_h[h][j_glob]] + d_ij[l_h[h][j_glob]][j_glob] - lambda_v[j_glob];
-                if (h < m - 1) {
-                    h += 1;
-                }
-                else if (j_glob < m - 1) {
-                    is_two = true;
-                    j_glob += 1;
-                    break;
-                }
-                else {
-                    is_break = true;
-                    break;
-                }
-            }
-        }
-        if (is_two) {
-            continue;
-        }
-        else if (is_break) {
-            break;
-        }
-    }
-    std::iota(indexes_map.begin(), indexes_map.end(), 0);
-    std::sort(indexes_map.begin(), indexes_map.end(), [this](int i1, int i2) {return ro[i1] < ro[i2]; });
-
-    ro_sorted = ro;
-    std::sort(ro_sorted.begin(), ro_sorted.end());
-    lagrangian = lagrangian + std::accumulate(ro_sorted.begin(), ro_sorted.begin() + k, 0.0);
-
- }
-
 #include <iostream>
 #include <ostream>
 #include <fstream>
 
+KMedoids::KMedoids(int k, int m, std::vector<std::vector<double>>& d_ij, double UB, std::vector<std::vector<int>>& faiss) : UB(UB) {
+    // reserve
+    data = std::make_unique<VectorData>();
+    data->k = k;
+    data->m = m;
+    data->g.reserve(m);
+    data->prev_g.reserve(m);
+    data->y_i.reserve(m);
+    data->indexes_map.reserve(m);
+    data->lambda_v.reserve(m);
+//    data.prev_g = std::vector<double>(m, 0);
+//    data.y_i = std::vector<int>(m, 0);
+//    data.indexes_map = std::vector<int>(m, 0);
+//    data.lambda_v = std::vector<double>(m, 0);
+
+    data->l_h = std::vector<std::vector<int>>(m, std::vector<int>(m, 0));
+    data->d_ij = std::vector<std::vector<double>>(m, std::vector<double>(m, 0));
+    data->x_ij = std::vector<std::vector<int>>(m, std::vector<int>(m, 0));
+    data->d_ij = d_ij;
+
+    LB = INT_MIN;
+    s = 0;
+    gamma = CONSTANTS::GAMMA_INITIAL;
+
+    if(faiss[0][0] != -1) {
+        data->l_h = faiss;
+    }
+    else {
+        for (int i = 0; i < m; i++) {
+            std::vector<int> indexes(m);
+            std::iota(indexes.begin(), indexes.end(), 0);
+            std::sort(indexes.begin(), indexes.end(), [i, &d_ij](int a, int b) { return d_ij[a][i] < d_ij[b][i]; });
+            for (int j = 0; j < m; j++) {
+                data->l_h[j][i] = indexes[j];
+            }
+        }
+    }
+
+    for (int i = 0; i < m; i++) {
+        data->lambda_v[i] = d_ij[i][data->l_h[0][i]];
+    }
+    cost_calculator = std::make_unique<CostCalculator>(data->m, data->lambda_v);
+    subgradient_calculator = std::make_unique<SubgradientCalculator>(data->m);
+    lambda_calculator = std::make_unique<LambdaCalculator>(data->m, false);
+
+     std::cout << "l_h" << std::endl;
+     for (int i = 0; i < 5; i++) {
+             std::cout << data->l_h[0][i] << " ";
+     }
+     std::cout << std::endl;
+     for (int i = 0; i < 5; i++) {
+             std::cout << data->l_h[1][i] << " ";
+     }
+}
+
 std::vector<double> KMedoids::solve(bool is_classic=true) {
     // create csv file for results
+    if (!CONSTANTS::WRITE_FILE_NAME_CSV.empty()) {}
     std::ofstream file;
-    file.open("ds1x4_k64_b3_gamma_1.55_bound.csv");
+    std::ofstream file_for_y;
+    std::ofstream file_for_x;
+    file.open(CONSTANTS::WRITE_FILE_NAME_CSV);
+    //file_for_x.open("ds1x4_k64_b0_gamma_1.05_x2.txt");
+    //file_for_y.open("ds1x4_k64_b0_gamma_1.05_y2.txt");
     file << "iteration,lagrangian,LB,time,gamma,gap" << std::endl;
+
+    for (int j = 0; j < data->m; j++) {
+        data->prev_g[j] = 1;
+    }
+    std::cout << "m" << data->m << " k" << data->k << " UB" << UB << " LB" << LB << " gamma" << gamma << " s" << s <<
+    " beta" << beta << " linear_norm" << linear_norm << " g[1]" << data->g[1] << " prev_g[1]" << data->prev_g[1] << " lambda_v[1]" << data->lambda_v[1]
+    << " l_h[1] " << data->l_h[1][0] << " d_ij[1] " << data->d_ij[1][0] << std::endl;
     while (true) {
         auto start = std::chrono::high_resolution_clock::now();
-        if (is_classic) {
-            compute_cost_dual_classic();
-        }
-        else {
-            compute_cost_dual_subcolumn();
-        }
 
-//        std::cout << "compute cost dual: " << elapsed.count() << std::endl;
-
-        if (lagrangian > LB) {
-            LB = lagrangian;
+        // [2]
+        cost_calculator->compute_with_classic(*data);
+        // [3]
+        if (cost_calculator->lagrangian > LB) {
+            LB = cost_calculator->lagrangian;
             beta = 0;
         }
-        if (LB / UB >= 1 - 1e-4) {
+        // [4]
+        if (LB / UB >= CONSTANTS::GAP_THRESHOLD) {
             auto finish = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = finish - start;
-            file << s << "," << lagrangian << "," << LB << "," << elapsed.count() << "," << gamma << "," << (UB-LB)/UB*100 << std::endl;
+            file << s << "," << cost_calculator->lagrangian << "," << LB << "," << elapsed.count() << "," << gamma << "," << (UB-LB)/UB*100 << std::endl;
+//            for (int i = 0; i < m; i++) {
+//                for (int j = 0; j < m; j++) {
+//                    file_for_x << x_ij[i][j] << " ";
+//                }
+//                file_for_x << std::endl;
+//            }
+//            file_for_x << std::endl;
+//            for (int i = 0; i < m; i++) {
+//                file_for_y << y_i[i] << " ";
+//            }
+//            file_for_y << std::endl;
+
             std::cout << "Difference is lower" << std::endl;
             break;
         }
-//        start = std::chrono::high_resolution_clock::now();
-        compute_y_and_g(false); // is classic
+        // [5]
+        subgradient_calculator->compute_with_classic(*data);
+
 //        finish = std::chrono::high_resolution_clock::now();
-//        elapsed = finish - start;
+//         elapsed = finish - start;
 //        std::cout << "compute y and g: " << elapsed.count() << std::endl;
 
-        double lin_norm = 0;
-        for (int j = 0; j < m; j++) {
-            lin_norm += g[j] * g[j];
+        linear_norm = 0.;
+//        linear_norm = (inner_product(data.g.begin(), data.g.end(), data.g.begin(), 0.0));
+        for (int j = 0; j < data->m; j++) {
+            linear_norm += data->g[j] * data->g[j];
         }
-        if (lin_norm <= 1e-5) {
+        if (linear_norm <= 1e-5) {
             std::cout << "Linear norm is lower" << std::endl;
             break;
         }
 
-        if (beta >= b_max) {
+        if (beta >= CONSTANTS::B_MAX) {
             gamma = gamma / 1.01;
             beta = 0;
         }
@@ -254,30 +136,36 @@ std::vector<double> KMedoids::solve(bool is_classic=true) {
             beta += 1;
         }
 
-        if (gamma < 1e-3) {
-            std::cout << "Gamma is lower" << std::endl;
+        if (gamma < 4e-4) {
+//            for (int i = 0; i < data.m; i++) {
+//                for (int j = 0; j < data.m; j++) {
+//                    file_for_x << x_ij[i][j] << " ";
+//                }
+//                file_for_x << std::endl;
+//            }
+//            file_for_x << std::endl;
+//
+//            for (int i = 0; i < m; i++) {
+//                file_for_y << y_i[i] << " ";
+//            }
+//            file_for_y << std::endl;
+//            std::cout << "Gamma is lower" << std::endl;
             break;
         }
-        double alpha = gamma * (1.05 * UB - lagrangian) / lin_norm;
-        std::vector<double> b_upper_bound(m, 0);
 
-        for (int j = 0; j < m; j++) {
-            b_upper_bound[j] = d_ij[j][l_h[s+1][j]];
-        }
-        for (int j = 0; j < m; j++) {
-            lambda_v[j] += alpha * g[j];
-            if (lambda_v[j] > b_upper_bound[j]) {
-                lambda_v[j] = b_upper_bound[j];
-            }
-        }
+        double alpha1 = gamma * (1.05 * UB - cost_calculator->lagrangian) / linear_norm;
 
-        std::cout << LB << " " << lambda_v[0] << " " << alpha << " " <<lin_norm << std::endl;
+        lambda_calculator->compute_with_classic(*data, alpha1, s);
+
+
+
+        std::cout << s << "  " << LB << " " << alpha1 << " " << linear_norm << std::endl;
         
         s += 1;
         auto finish = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = finish - start;
-        file << s << "," << lagrangian << "," << LB << "," << elapsed.count() << "," << gamma << "," << (UB-LB)/UB*100 << std::endl;
-//        std::cout << "LB: " << LB << std::endl;
+        file << s << "," << cost_calculator->lagrangian << "," << LB << "," << elapsed.count() << "," << gamma << "," << (UB-LB)/UB*100 << std::endl;
+        std::cout << "LB: " << LB << std::endl;
 //        std::cout << "Lagr: " << lagrangian << std::endl;
 //        std::cout << "lin_norm: " << lin_norm << std::endl;
 //        std::cout << "gamma: " << gamma << std::endl;
